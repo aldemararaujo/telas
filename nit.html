@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Telas - NIT</title>
+    <!-- Tailwind CSS embutido via CDN para manter os mesmos estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animação CSS nativa para a barra de tempo */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 5s linear;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 selection:bg-emerald-500 selection:text-white overflow-hidden m-0 p-0 font-sans">
+    
+    <!-- Tela principal da aplicação -->
+    <div id="app" class="relative w-screen h-screen flex flex-col justify-center items-center pt-8 px-8 pb-28 md:pt-16 md:px-16 md:pb-36 lg:pt-24 lg:px-24 lg:pb-40 transition-opacity duration-300">
+        
+        <!-- Indicador de Tempo Visual (Linha superior) -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-zinc-800">
+            <div id="progress-bar" class="h-full bg-emerald-500"></div>
+        </div>
+
+        <!-- Container exato responsável pela área máxima e medição -->
+        <div id="container" class="w-full h-full flex justify-center items-center">
+            <div id="text" class="text-white font-black text-center break-words tracking-tight drop-shadow-2xl leading-[1.1]" style="word-break: keep-all;">
+                <!-- O texto dinâmico será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
+        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            <span id="date-display"></span>
+            <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
+            
+            <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
+            <div class="hidden md:block absolute right-6 text-xs md:text-sm text-zinc-400 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                ✖ Fechar Apresentação
+            </div>
+        </button>
+    </div>
+
+    <!-- Script com toda a lógica da aplicação -->
+    <script>
+        // Banco com 50 frases focadas em NIT, ICTs e Inovação.
+        // Regra aplicada: Sem barras, usando vírgulas e mantendo hífens.
+        const BANK_FRASES = [
+            "A inovação tecnológica é o motor do desenvolvimento brasileiro.",
+            "Os Núcleos de Inovação Tecnológica conectam a pesquisa de excelência ao mercado.",
+            "A Lei de Inovação modernizou a infraestrutura de pesquisa no Brasil.",
+            "O marco legal superou a dicotomia entre produção acadêmica e aplicação industrial.",
+            "As Instituições Científicas, Tecnológicas e de Inovação promovem o avanço científico nacional.",
+            "A transferência de tecnologia é fundamental para o crescimento da nossa economia.",
+            "A propriedade intelectual protege as grandes invenções desenvolvidas nas universidades.",
+            "O Relatório Formict consolida informações estratégicas sobre a inovação no país.",
+            "O conhecimento gerado no Brasil deve ser convertido em riqueza econômica.",
+            "A segurança jurídica incentiva fortemente a colaboração universidade-empresa.",
+            "Os NITs são instâncias administrativas e altamente estratégicas.",
+            "O expressivo capital intelectual das universidades transforma a sociedade.",
+            "A Política de Propriedade Intelectual guia as instituições brasileiras rumo ao futuro.",
+            "Projetos de pesquisa inovadores devem ser adequadamente protegidos e patenteados.",
+            "O Ministério da Ciência, Tecnologia e Inovação lidera o ecossistema brasileiro.",
+            "A Agência USP de Inovação mostra o grande impacto do conhecimento acadêmico.",
+            "O formulário eletrônico Formict ano-base deve ser preenchido anualmente pelas ICTs.",
+            "A inovação em números reflete o verdadeiro potencial das nossas universidades.",
+            "Parques tecnológicos impulsionam o desenvolvimento econômico e regional.",
+            "O apoio contínuo aos ecossistemas de inovação fortalece a economia nacional.",
+            "A regularização de dados pendentes garante a transparência governamental.",
+            "Os indicadores nacionais medem o avanço prático da ciência e tecnologia.",
+            "As patentes garantem o justo retorno sobre o investimento em pesquisa.",
+            "A atuação dos NITs é essencial para a integração tecnológica do país.",
+            "A pesquisa aplicada soluciona os desafios reais da nossa sociedade.",
+            "As parcerias estratégicas aceleram a criação de novos produtos.",
+            "O fomento à inovação exige políticas públicas eficazes e atualizadas.",
+            "O Brasil possui um patrimônio valioso de conhecimento em suas instituições.",
+            "O Sistema Nacional de Ciência, Tecnologia e Inovação está em constante evolução.",
+            "O preenchimento do Formict evita irregularidades institucionais gravíssimas.",
+            "A cultura de proteção ao conhecimento deve ser amplamente disseminada.",
+            "O desenvolvimento tecnológico garante a plena soberania de uma nação.",
+            "A inovação aberta amplia de forma exponencial as possibilidades de criação conjunta.",
+            "Laboratórios universitários são os verdadeiros celeiros de grandes descobertas.",
+            "Os pesquisadores brasileiros são potentes agentes de transformação socioeconômica.",
+            "A gestão da inovação tecnológica exige capacitação técnica constante.",
+            "O Plano Brasileiro de Inteligência Artificial projeta o futuro do país.",
+            "A transparência na prestação de contas é um dever de todas as ICTs.",
+            "Os dados abertos facilitam o acompanhamento das políticas de inovação.",
+            "As agências de fomento estimulam diretamente o crescimento científico.",
+            "A tecnologia da informação acelera a troca vital de conhecimentos.",
+            "A proteção intelectual resguarda o patrimônio de infraestrutura das universidades.",
+            "Os direitos autorais e as patentes são instrumentos vitais de valorização.",
+            "A ciência aplicada gera novos empregos e melhora a qualidade de vida.",
+            "O monitoramento rigoroso de indicadores orienta as políticas de incentivo.",
+            "O licenciamento de tecnologias leva a pesquisa diretamente ao setor produtivo.",
+            "O ecossistema de inovação brasileiro é plural, diverso e altamente produtivo.",
+            "As vitrines tecnológicas expõem de maneira clara o potencial das ICTs.",
+            "O empreendedorismo acadêmico transforma teses e pesquisas em grandes negócios.",
+            "A ciência é a base fundamental para um Brasil muito mais inovador e competitivo."
+        ];
+
+        // Elementos do DOM
+        const textEl = document.getElementById('text');
+        const containerEl = document.getElementById('container');
+        const progressBar = document.getElementById('progress-bar');
+        const footerBtn = document.getElementById('footer-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const timeDisplay = document.getElementById('time-display');
+
+        // Estado do app
+        let allSentences = [];
+        let currentIndex = 0;
+        let isClosed = false;
+        let phraseTimer;
+        let clockTimer;
+
+        // Embaralhador de Array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Busca Binária para Cálculo de Fonte
+        function adjustFontSize() {
+            if (isClosed) return;
+
+            textEl.style.transition = 'none';
+            textEl.style.fontSize = '10px';
+
+            const targetWidth = containerEl.clientWidth;
+            const targetHeight = containerEl.clientHeight;
+
+            let min = 10;
+            let max = 1500;
+            let best = 10;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                textEl.style.fontSize = mid + 'px';
+
+                if (textEl.scrollWidth <= targetWidth && textEl.scrollHeight <= targetHeight) {
+                    best = mid;
+                    min = mid + 1;
+                } else {
+                    max = mid - 1;
+                }
+            }
+
+            textEl.style.fontSize = Math.max(10, best - 2) + 'px';
+        }
+
+        // Gerenciar Ciclo das Frases e Barra de Progresso
+        function showNextPhrase() {
+            if (isClosed) return;
+
+            // Injeta o texto e recalcula a fonte
+            textEl.innerText = allSentences[currentIndex];
+            adjustFontSize();
+
+            // Reflow para reiniciar a animação da barra CSS
+            progressBar.classList.remove('animate-progress');
+            void progressBar.offsetWidth; 
+            progressBar.classList.add('animate-progress');
+
+            // Prepara a próxima
+            currentIndex++;
+            if (currentIndex >= allSentences.length) {
+                allSentences = shuffleArray(BANK_FRASES);
+                currentIndex = 0;
+            }
+        }
+
+        // Relógio focado no fuso horário (Maceió)
+        function updateClock() {
+            if (isClosed) return;
+
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Maceio',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(now);
+            const dateParts = {};
+            parts.forEach(({ type, value }) => { dateParts[type] = value; });
+
+            const monthCapitalized = dateParts.month ? dateParts.month.charAt(0).toUpperCase() + dateParts.month.slice(1) : '';
+            
+            const dataFormatada = `${dateParts.day} de ${monthCapitalized} de ${dateParts.year} (${dateParts.weekday})`;
+            const horaFormatada = `${dateParts.hour}h${dateParts.minute}`;
+
+            dateDisplay.innerText = dataFormatada;
+            timeDisplay.innerText = horaFormatada;
+        }
+
+        // Inicialização Principal
+        window.onload = () => {
+            allSentences = shuffleArray(BANK_FRASES);
+            
+            // Relógio
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+            
+            // Frases (Inicia imediatamente e depois entra no loop de 5s)
+            showNextPhrase();
+            phraseTimer = setInterval(showNextPhrase, 5000);
+
+            // Ajuste ao redimensionar
+            window.addEventListener('resize', adjustFontSize);
+
+            // Ação de fechar a tela no rodapé
+            footerBtn.addEventListener('click', () => {
+                isClosed = true;
+                clearInterval(phraseTimer);
+                clearInterval(clockTimer);
+                // Substitui a tela inteira por uma div preta
+                document.body.innerHTML = '<div class="w-screen h-screen bg-black"></div>';
+            });
+        };
+    </script>
+</body>
+</html>
