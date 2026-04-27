@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Telas - NIT</title>
+    <!-- Tailwind CSS embutido via CDN para manter os mesmos estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animação CSS nativa para a barra de tempo */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 5s linear;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 selection:bg-emerald-500 selection:text-white overflow-hidden m-0 p-0 font-sans">
+    
+    <!-- Tela principal da aplicação -->
+    <div id="app" class="relative w-screen h-screen flex flex-col justify-center items-center pt-8 px-8 pb-28 md:pt-16 md:px-16 md:pb-36 lg:pt-24 lg:px-24 lg:pb-40 transition-opacity duration-300">
+        
+        <!-- Indicador de Tempo Visual (Linha superior) -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-zinc-800">
+            <div id="progress-bar" class="h-full bg-emerald-500"></div>
+        </div>
+
+        <!-- Container exato responsável pela área máxima e medição -->
+        <div id="container" class="w-full h-full flex justify-center items-center">
+            <div id="text" class="text-white font-black text-center break-words tracking-tight drop-shadow-2xl leading-[1.1]" style="word-break: keep-all;">
+                <!-- O texto dinâmico será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
+        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            <span id="date-display"></span>
+            <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
+            
+            <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
+            <div class="hidden md:block absolute right-6 text-xs md:text-sm text-zinc-400 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                ✖ Fechar Apresentação
+            </div>
+        </button>
+    </div>
+
+    <!-- Script com toda a lógica da aplicação -->
+    <script>
+        // Banco com 50 frases focadas em Pitches, Startups e Investidores.
+        // Regra aplicada: Sem barras, usando vírgulas e mantendo hífens.
+        const BANK_FRASES = [
+            "O pitch perfeito conquista investidores.",
+            "A equipe é o fator mais avaliado por investidores anjo.",
+            "Storytelling converte apresentações em oportunidades reais de investimento.",
+            "O mercado-alvo deve ser grande e apresentar potencial de crescimento.",
+            "Um elevator pitch dura o tempo exato de uma viagem de elevador.",
+            "Evite o uso excessivo de jargões técnicos durante a sua apresentação.",
+            "A prova social foi crucial para o sucesso histórico do pitch do Buzzfeed.",
+            "Investimento em startups envolve riscos financeiros e alto potencial de retorno.",
+            "O valuation justo atrai capital inteligente para o seu negócio.",
+            "Demonstre tração e prove que sua solução resolve um problema real.",
+            "O pitch deck é uma ferramenta visual fundamental para apoiar o seu discurso.",
+            "Investidores decidem rápido, não cometa erros estratégicos básicos.",
+            "Liquidation preference é um termo comum e decisivo em rodadas de captação.",
+            "Um bom modelo de negócio mostra exatamente como a startup ganha dinheiro.",
+            "Conheça profundamente o seu mercado e os seus concorrentes diretos.",
+            "Prepare-se para responder às perguntas mais difíceis da banca de investidores.",
+            "O tamanho importa: avalie com precisão o potencial do seu mercado endereçável.",
+            "A cláusula de não-concorrência protege os interesses após o momento de aquisição.",
+            "Mostre o que você já fez, na prática, para a sua empresa sair do papel.",
+            "A paixão do empreendedor contagia e transmite extrema confiança ao investidor.",
+            "Métricas e indicadores são essenciais para avaliar o potencial de crescimento.",
+            "Aceleração de startups transforma boas ideias em grandes negócios escaláveis.",
+            "Não esconda os problemas, demonstre alta capacidade de resiliência e adaptação.",
+            "Seja claro, conciso e direto ao ponto em cada slide do pitch deck.",
+            "O problema apresentado deve ser doloroso o suficiente para justificar a sua solução.",
+            "Captação de investimento exige preparação, networking ativo e muita resiliência.",
+            "Mostre as vantagens competitivas que tornam sua startup totalmente única no mercado.",
+            "Investidores anjo buscam equipes complementares e com altíssima capacidade de execução.",
+            "O plano de negócios detalha a visão estratégica de longo prazo da empresa.",
+            "O elevator pitch deve despertar a curiosidade imediata para uma próxima reunião.",
+            "A validação real do cliente é muito mais importante do que uma ideia genial.",
+            "Protagonismo individual e decisões de longo prazo constroem negócios sólidos.",
+            "Startups de sucesso dominam as métricas vitais de custo de aquisição de clientes.",
+            "O acordo de confidencialidade resguarda as informações estratégicas da sua rodada.",
+            "Conheça o histórico do fundo investidor antes de apresentar o seu pitch.",
+            "A tecnologia deve ser apenas um meio inteligente para escalar, não o fim em si.",
+            "O capital semente ajuda a validar rapidamente o produto no mercado inicial.",
+            "Prepare uma demonstração ao vivo impecável para impressionar a banca de avaliação.",
+            "A clareza na proposta de valor define quase todo o sucesso da captação.",
+            "O retorno sobre o investimento guia todas as decisões dos fundos de venture capital.",
+            "Treine o seu discurso repetidas vezes para evitar surpresas, brancos e nervosismo.",
+            "Due diligence é a etapa fundamental de auditoria antes da assinatura do contrato.",
+            "Um design limpo no pitch deck facilita a absorção imediata da sua mensagem.",
+            "O go-to-market plan define como você conquistará os seus primeiros grandes clientes.",
+            "Entenda perfeitamente a diferença entre o mercado total e o mercado endereçável.",
+            "Uma boa apresentação termina com um pedido claro, objetivo e justificado de investimento.",
+            "A capacidade de retenção de usuários prova o valor contínuo do seu produto.",
+            "Inovação corporativa aproxima estrategicamente grandes empresas do ecossistema de startups.",
+            "Seja transparente sobre os riscos assumidos e as premissas centrais do seu negócio.",
+            "O pitch perfeito é aquele que inicia um relacionamento de sucesso duradouro com o investidor."
+        ];
+
+        // Elementos do DOM
+        const textEl = document.getElementById('text');
+        const containerEl = document.getElementById('container');
+        const progressBar = document.getElementById('progress-bar');
+        const footerBtn = document.getElementById('footer-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const timeDisplay = document.getElementById('time-display');
+
+        // Estado do app
+        let allSentences = [];
+        let currentIndex = 0;
+        let isClosed = false;
+        let phraseTimer;
+        let clockTimer;
+
+        // Embaralhador de Array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Busca Binária para Cálculo de Fonte
+        function adjustFontSize() {
+            if (isClosed) return;
+
+            textEl.style.transition = 'none';
+            textEl.style.fontSize = '10px';
+
+            const targetWidth = containerEl.clientWidth;
+            const targetHeight = containerEl.clientHeight;
+
+            let min = 10;
+            let max = 1500;
+            let best = 10;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                textEl.style.fontSize = mid + 'px';
+
+                if (textEl.scrollWidth <= targetWidth && textEl.scrollHeight <= targetHeight) {
+                    best = mid;
+                    min = mid + 1;
+                } else {
+                    max = mid - 1;
+                }
+            }
+
+            textEl.style.fontSize = Math.max(10, best - 2) + 'px';
+        }
+
+        // Gerenciar Ciclo das Frases e Barra de Progresso
+        function showNextPhrase() {
+            if (isClosed) return;
+
+            // Injeta o texto e recalcula a fonte
+            textEl.innerText = allSentences[currentIndex];
+            adjustFontSize();
+
+            // Reflow para reiniciar a animação da barra CSS
+            progressBar.classList.remove('animate-progress');
+            void progressBar.offsetWidth; 
+            progressBar.classList.add('animate-progress');
+
+            // Prepara a próxima
+            currentIndex++;
+            if (currentIndex >= allSentences.length) {
+                allSentences = shuffleArray(BANK_FRASES);
+                currentIndex = 0;
+            }
+        }
+
+        // Relógio focado no fuso horário (Maceió)
+        function updateClock() {
+            if (isClosed) return;
+
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Maceio',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(now);
+            const dateParts = {};
+            parts.forEach(({ type, value }) => { dateParts[type] = value; });
+
+            const monthCapitalized = dateParts.month ? dateParts.month.charAt(0).toUpperCase() + dateParts.month.slice(1) : '';
+            
+            const dataFormatada = `${dateParts.day} de ${monthCapitalized} de ${dateParts.year} (${dateParts.weekday})`;
+            const horaFormatada = `${dateParts.hour}h${dateParts.minute}`;
+
+            dateDisplay.innerText = dataFormatada;
+            timeDisplay.innerText = horaFormatada;
+        }
+
+        // Inicialização Principal
+        window.onload = () => {
+            allSentences = shuffleArray(BANK_FRASES);
+            
+            // Relógio
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+            
+            // Frases (Inicia imediatamente e depois entra no loop de 5s)
+            showNextPhrase();
+            phraseTimer = setInterval(showNextPhrase, 5000);
+
+            // Ajuste ao redimensionar
+            window.addEventListener('resize', adjustFontSize);
+
+            // Ação de fechar a tela no rodapé
+            footerBtn.addEventListener('click', () => {
+                isClosed = true;
+                clearInterval(phraseTimer);
+                clearInterval(clockTimer);
+                // Substitui a tela inteira por uma div preta
+                document.body.innerHTML = '<div class="w-screen h-screen bg-black"></div>';
+            });
+        };
+    </script>
+</body>
+</html>
