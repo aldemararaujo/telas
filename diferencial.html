@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Telas - Vascular</title>
+    <!-- Tailwind CSS embutido via CDN para manter os mesmos estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animação CSS nativa para a barra de tempo */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 5s linear;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 selection:bg-emerald-500 selection:text-white overflow-hidden m-0 p-0 font-sans">
+    
+    <!-- Tela principal da aplicação -->
+    <div id="app" class="relative w-screen h-screen flex flex-col justify-center items-center pt-8 px-8 pb-28 md:pt-16 md:px-16 md:pb-36 lg:pt-24 lg:px-24 lg:pb-40 transition-opacity duration-300">
+        
+        <!-- Indicador de Tempo Visual (Linha superior) -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-zinc-800">
+            <div id="progress-bar" class="h-full bg-emerald-500"></div>
+        </div>
+
+        <!-- Container exato responsável pela área máxima e medição -->
+        <div id="container" class="w-full h-full flex justify-center items-center">
+            <div id="text" class="text-white font-black text-center break-words tracking-tight drop-shadow-2xl leading-[1.1]" style="word-break: keep-all;">
+                <!-- O texto dinâmico será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
+        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            <span id="date-display"></span>
+            <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
+            
+            <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
+            <div class="hidden md:block absolute right-6 text-xs md:text-sm text-zinc-400 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                ✖ Fechar Apresentação
+            </div>
+        </button>
+    </div>
+
+    <!-- Script com toda a lógica da aplicação -->
+    <script>
+        // Banco com 50 frases focadas no Diagnóstico Diferencial Vascular
+        // Regra aplicada: Sem barras, usando vírgulas e mantendo hífens.
+        const BANK_FRASES = [
+            "O diagnóstico clínico das doenças vasculares pode ser construído em camadas.",
+            "Organizar as informações evita conclusões precipitadas e melhora a segurança clínica.",
+            "Primeiro descrevemos a síndrome, depois localizamos o território anatômico exato.",
+            "O diagnóstico nosológico é o nome da doença reconhecida pelos exames.",
+            "Nosso objetivo é transformar sinais e sintomas em raciocínio clínico aplicável.",
+            "O diagnóstico sindrômico é a primeira organização objetiva do caso do paciente.",
+            "A síndrome da perna inchada aguda e a crônica exigem abordagens diferentes.",
+            "A síndrome ulcerosa do membro inferior requer investigação atenta da etiologia.",
+            "O diagnóstico anatômico localiza o território predominante e direciona o exame físico.",
+            "Os territórios anatômicos principais incluem os sistemas arterial, venoso, linfático e neuropático.",
+            "O termo correto para nomear a doença em si é diagnóstico nosológico.",
+            "O termo posológico refere-se unicamente à dose e frequência de uso de medicamentos.",
+            "O aluno de medicina deve primeiro observar, depois organizar e formular hipóteses.",
+            "O diagnóstico etiológico define com extrema precisão o mecanismo causal do quadro.",
+            "O diagnóstico etiológico é a avaliação mais completa da origem do problema vascular.",
+            "A causa etiológica de uma lesão pode ser puramente inflamatória ou congênita.",
+            "Quando a causa não é clara, registramos com segurança o diagnóstico nosológico.",
+            "A trombose venosa profunda e o linfedema são exemplos clássicos de diagnósticos nosológicos.",
+            "Durante o exame, descreva atentamente a localização, cor, edema, dor e temperatura.",
+            "Identifique rapidamente na emergência se existe algum risco de morte ou perda do membro.",
+            "Classifique a síndrome predominante e defina o território anatômico principal afetado.",
+            "Liste as suas hipóteses de forma lógica e escolha o diagnóstico clínico mais provável.",
+            "O professor deve exigir uma descrição objetiva antes de aceitar qualquer diagnóstico.",
+            "Interrompa as respostas precipitadas dos alunos e retorne a atenção ao exame físico.",
+            "O funil diagnóstico evita a memorização superficial e força o raciocínio clínico estruturado.",
+            "A primeira etapa fundamental do funil diagnóstico avalia a gravidade e o risco imediato.",
+            "A segunda etapa do funil define o padrão da síndrome através da dor e do edema.",
+            "Analise cuidadosamente a etiologia, nosologia, causas infecciosas, metabólicas ou degenerativas.",
+            "O diagnóstico diferencial vascular correto não começa por uma longa lista de doenças.",
+            "O diagnóstico sempre começa pela definição rigorosa do problema clínico dominante.",
+            "Antes de refinar qualquer hipótese, o estudante deve saber reconhecer as situações urgentes.",
+            "Procure incansavelmente por sinais de isquemia, infecção sistêmica ou trombose venosa maciça.",
+            "A revisão do caso clínico deve sempre responder com clareza qual é o diagnóstico mais provável.",
+            "Dor súbita, pé frio e ausência de pulso indicam ameaça iminente ao membro.",
+            "Parestesia e progressão rápida da necrose ameaçam gravemente a viabilidade do membro.",
+            "Febre, hipotensão e confusão mental configuram sinais de alarme puramente sistêmico.",
+            "A dispneia associada a uma suspeita de trombose venosa é uma ameaça direta à vida.",
+            "Decida inicialmente se o paciente necessita de internação, anticoagulação ou desbridamento cirúrgico.",
+            "Na perna inchada aguda, verifique se o edema instalado é unilateral e doloroso.",
+            "Histórico de câncer, cirurgia e viagem prolongada são alertas imediatos para trombose.",
+            "O ultrassom Doppler venoso é o exame mais útil para a suspeita de trombose.",
+            "É um erro médico comum tratar todo edema doloroso apenas como um quadro infeccioso.",
+            "A síndrome da perna inchada crônica exige investigação detalhada sobre piora vespertina.",
+            "O edema venoso crônico cursa de forma típica com varizes, hiperpigmentação e peso nas pernas.",
+            "O edema linfático apresenta classicamente pele espessada, fibrose e sinal de Stemmer positivo.",
+            "Os sinais clássicos de isquemia incluem dor severa, palidez, ausência de pulso e frialdade.",
+            "A claudicação vascular manifesta dor reprodutível ao esforço com melhora rápida no repouso.",
+            "As úlceras venosas costumam apresentar exsudato, bordas irregulares e localização na região maleolar.",
+            "Todo paciente com dor vascular, necrose ou ferida deve ter os pulsos distais obrigatoriamente avaliados.",
+            "O erro clínico mais grave é não examinar os pulsos e atrasar um encaminhamento urgente."
+        ];
+
+        // Elementos do DOM
+        const textEl = document.getElementById('text');
+        const containerEl = document.getElementById('container');
+        const progressBar = document.getElementById('progress-bar');
+        const footerBtn = document.getElementById('footer-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const timeDisplay = document.getElementById('time-display');
+
+        // Estado do app
+        let allSentences = [];
+        let currentIndex = 0;
+        let isClosed = false;
+        let phraseTimer;
+        let clockTimer;
+
+        // Embaralhador de Array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Busca Binária para Cálculo de Fonte
+        function adjustFontSize() {
+            if (isClosed) return;
+
+            textEl.style.transition = 'none';
+            textEl.style.fontSize = '10px';
+
+            const targetWidth = containerEl.clientWidth;
+            const targetHeight = containerEl.clientHeight;
+
+            let min = 10;
+            let max = 1500;
+            let best = 10;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                textEl.style.fontSize = mid + 'px';
+
+                if (textEl.scrollWidth <= targetWidth && textEl.scrollHeight <= targetHeight) {
+                    best = mid;
+                    min = mid + 1;
+                } else {
+                    max = mid - 1;
+                }
+            }
+
+            textEl.style.fontSize = Math.max(10, best - 2) + 'px';
+        }
+
+        // Gerenciar Ciclo das Frases e Barra de Progresso
+        function showNextPhrase() {
+            if (isClosed) return;
+
+            // Injeta o texto e recalcula a fonte
+            textEl.innerText = allSentences[currentIndex];
+            adjustFontSize();
+
+            // Reflow para reiniciar a animação da barra CSS
+            progressBar.classList.remove('animate-progress');
+            void progressBar.offsetWidth; 
+            progressBar.classList.add('animate-progress');
+
+            // Prepara a próxima
+            currentIndex++;
+            if (currentIndex >= allSentences.length) {
+                allSentences = shuffleArray(BANK_FRASES);
+                currentIndex = 0;
+            }
+        }
+
+        // Relógio focado no fuso horário (Maceió)
+        function updateClock() {
+            if (isClosed) return;
+
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Maceio',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(now);
+            const dateParts = {};
+            parts.forEach(({ type, value }) => { dateParts[type] = value; });
+
+            const monthCapitalized = dateParts.month ? dateParts.month.charAt(0).toUpperCase() + dateParts.month.slice(1) : '';
+            
+            const dataFormatada = `${dateParts.day} de ${monthCapitalized} de ${dateParts.year} (${dateParts.weekday})`;
+            const horaFormatada = `${dateParts.hour}h${dateParts.minute}`;
+
+            dateDisplay.innerText = dataFormatada;
+            timeDisplay.innerText = horaFormatada;
+        }
+
+        // Inicialização Principal
+        window.onload = () => {
+            allSentences = shuffleArray(BANK_FRASES);
+            
+            // Relógio
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+            
+            // Frases (Inicia imediatamente e depois entra no loop de 5s)
+            showNextPhrase();
+            phraseTimer = setInterval(showNextPhrase, 5000);
+
+            // Ajuste ao redimensionar
+            window.addEventListener('resize', adjustFontSize);
+
+            // Ação de fechar a tela no rodapé
+            footerBtn.addEventListener('click', () => {
+                isClosed = true;
+                clearInterval(phraseTimer);
+                clearInterval(clockTimer);
+                // Substitui a tela inteira por uma div preta
+                document.body.innerHTML = '<div class="w-screen h-screen bg-black"></div>';
+            });
+        };
+    </script>
+</body>
+</html>
