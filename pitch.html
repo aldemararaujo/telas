@@ -35,8 +35,15 @@
         </div>
 
         <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
-        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
-            <span id="date-display"></span>
+      <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            
+            <!-- Linha da Data com o @aldemararaujo separado por tabulação (gap-8) -->
+            <div class="flex items-center gap-8">
+                <span id="date-display"></span>
+                <span class="text-emerald-500 font-semibold tracking-wider">@aldemararaujo</span>
+            </div>
+            
+            <!-- Linha da Hora -->
             <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
             
             <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
