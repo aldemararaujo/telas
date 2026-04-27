@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Telas - Clube de Revista</title>
+    <!-- Tailwind CSS embutido via CDN para manter os mesmos estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animação CSS nativa para a barra de tempo */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 5s linear;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 selection:bg-emerald-500 selection:text-white overflow-hidden m-0 p-0 font-sans">
+    
+    <!-- Tela principal da aplicação -->
+    <div id="app" class="relative w-screen h-screen flex flex-col justify-center items-center pt-8 px-8 pb-28 md:pt-16 md:px-16 md:pb-36 lg:pt-24 lg:px-24 lg:pb-40 transition-opacity duration-300">
+        
+        <!-- Indicador de Tempo Visual (Linha superior) -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-zinc-800">
+            <div id="progress-bar" class="h-full bg-emerald-500"></div>
+        </div>
+
+        <!-- Container exato responsável pela área máxima e medição -->
+        <div id="container" class="w-full h-full flex justify-center items-center">
+            <div id="text" class="text-white font-black text-center break-words tracking-tight drop-shadow-2xl leading-[1.1]" style="word-break: keep-all;">
+                <!-- O texto dinâmico será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
+        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            <span id="date-display"></span>
+            <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
+            
+            <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
+            <div class="hidden md:block absolute right-6 text-xs md:text-sm text-zinc-400 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                ✖ Fechar Apresentação
+            </div>
+        </button>
+    </div>
+
+    <!-- Script com toda a lógica da aplicação -->
+    <script>
+        // Banco com 100 frases focadas em Leitura Crítica e Clube de Revista
+        // Regra aplicada: Sem barras (substituídas), idioma em PT-BR e mantendo hífens.
+        const BANK_FRASES = [
+            "O Clube de Revista ensina a avaliar a validade de uma pesquisa.",
+            "A avaliação da qualidade da informação é uma técnica fundamental.",
+            "A resposta não pode depender apenas de opinião ou tradição.",
+            "O raciocínio clínico precisa se apoiar em evidências sólidas.",
+            "Muitos artigos não têm boa qualidade, mesmo nas melhores revistas.",
+            "É preciso aprender a identificar o que é válido, importante e aplicável.",
+            "A leitura crítica separa a verdadeira ciência da mera suposição.",
+            "Desenvolva um olhar crítico para transformar informação em decisão segura.",
+            "A medicina baseada em evidências começa com a leitura crítica estruturada.",
+            "Informações médicas provêm de fontes diversas e requerem cautela.",
+            "Nem tudo publicado em revistas renomadas possui uma aura de veracidade.",
+            "Informações científicas não devem ser recebidas de maneira passiva.",
+            "É necessária uma reflexão crítica constante sobre o conteúdo lido.",
+            "A falta de habilidade em leitura crítica compromete a prática médica.",
+            "Avalie sempre a validade interna dos resultados de um estudo.",
+            "A importância clínica dos achados deve guiar a sua decisão.",
+            "Verifique a aplicabilidade dos resultados para o seu paciente específico.",
+            "Ensaios clínicos randomizados são o padrão-ouro para intervenções.",
+            "Revisões sistemáticas reúnem e sintetizam as melhores evidências disponíveis.",
+            "Diretrizes clínicas ajudam a padronizar condutas, mas exigem análise crítica.",
+            "O tamanho do efeito da intervenção é um dado crucial na avaliação.",
+            "A precisão dos resultados é avaliada pelos intervalos de confiança.",
+            "O acaso pode explicar resultados em estudos com amostras muito pequenas.",
+            "Cuidado constante com os vieses que distorcem os resultados da pesquisa.",
+            "O viés de seleção compromete a comparação justa entre os grupos.",
+            "A randomização oculta garante a imprevisibilidade da alocação de pacientes.",
+            "O cegamento protege o ensaio clínico contra o temido viés de aferição.",
+            "As perdas de seguimento ameaçam fortemente a validade do estudo.",
+            "A análise por intenção de tratar preserva os benefícios da randomização.",
+            "Nem todo desfecho estatisticamente significante é clinicamente relevante.",
+            "Desfechos substitutos nem sempre refletem o que importa para o doente.",
+            "O risco relativo mede a força da associação entre as variáveis estudadas.",
+            "A redução absoluta do risco mostra o real impacto da intervenção médica.",
+            "O número necessário para tratar ajuda a medir o esforço terapêutico prático.",
+            "Avalie os danos potenciais antes de recomendar um novo tratamento inovador.",
+            "A qualidade metodológica de um artigo define a real força da evidência.",
+            "O Clube de Revista treina a tomada de decisão baseada em evidências.",
+            "Perguntas clínicas bem formuladas direcionam a busca na literatura médica.",
+            "A estratégia metodológica facilita a construção estruturada da pergunta de pesquisa.",
+            "Sempre defina Paciente, Intervenção, Comparação e Desfecho esperados.",
+            "A busca por evidências exige domínio de bases de dados científicas confiáveis.",
+            "Filtros metodológicos agilizam a localização dos melhores e mais densos estudos.",
+            "Leia o resumo, mas nunca decida condutas baseadas estritamente apenas nele.",
+            "A seção de métodos é a parte mais importante de um artigo científico sério.",
+            "O desenho do estudo deve ser perfeitamente adequado para responder à pergunta.",
+            "Estudos observacionais são ótimos para avaliar danos, riscos e prognóstico.",
+            "A hierarquia das evidências ajuda a classificar a confiança nos dados clínicos.",
+            "Opinião de especialista isolada é o nível mais baixo de evidência científica.",
+            "A medicina baseada em evidências integra ciência, experiência e o paciente.",
+            "As preferências do paciente devem sempre ser respeitadas na tomada de decisão.",
+            "Um bom artigo descreve claramente os critérios rigorosos de inclusão e exclusão.",
+            "Grupos de estudo e controle devem ser semelhantes no início da pesquisa.",
+            "Fatores de confusão podem mascarar completamente o verdadeiro efeito da intervenção.",
+            "A lista de critérios avalia a qualidade de ensaios clínicos randomizados.",
+            "As recomendações de saúde devem ser classificadas por seus graus de força.",
+            "Guias de prática clínica de alta qualidade baseiam-se em revisões sistemáticas.",
+            "A transparência na publicação de pesquisas é um dever ético e científico inegociável.",
+            "Conflitos de interesse podem influenciar o desenho e os resultados finais do estudo.",
+            "É absolutamente fundamental declarar quem financiou a execução da pesquisa.",
+            "O valor estatístico indica a probabilidade de o resultado ser mera obra do acaso.",
+            "O intervalo de confiança oferece uma margem de estimativa altamente confiável.",
+            "A validade externa avalia se os resultados se aplicam a outros cenários reais.",
+            "Validade interna é o grau de confiança de que o estudo não possui vieses graves.",
+            "Aprenda a criticar a literatura médica para não ser levado ao erro profissional.",
+            "O avanço tecnológico exige atualização médica constante, crítica e rigorosa.",
+            "O tempo na consulta é curto, por isso a busca pela informação deve ser eficiente.",
+            "A análise crítica transforma o leitor passivo em um investigador ativo e perspicaz.",
+            "Muito cuidado com conclusões baseadas em subgrupos que não foram planejados.",
+            "Um estudo multicêntrico bem conduzido aumenta a validade externa dos resultados.",
+            "A reprodutibilidade da pesquisa é um pilar estrutural do método científico global.",
+            "Sempre pergunte se o estudo aborda um problema clinicamente importante de fato.",
+            "A inovação terapêutica deve provar superioridade ou, pelo menos, não-inferioridade.",
+            "Desfechos compostos podem inflar artificialmente o benefício da droga testada.",
+            "A morbimortalidade é o desfecho mais forte e valioso em ensaios clínicos.",
+            "Alívio de sintomas e qualidade de vida são desfechos essenciais centrados no paciente.",
+            "O tamanho da amostra deve ter poder estatístico suficiente para provar a tese.",
+            "Estudos pequenos demais correm altíssimo risco de gerar falsos negativos.",
+            "A significância estatística depende diretamente do tamanho da amostra estudada.",
+            "A significância clínica depende exclusivamente do impacto real na vida do doente.",
+            "O acompanhamento clínico dos pacientes deve ser longo e completo o suficiente.",
+            "Compare os grupos com relação a co-intervenções médicas não planejadas.",
+            "A intervenção estudada está disponível e acessível no seu contexto de trabalho?",
+            "Os benefícios reais esperados superam os custos e os riscos potenciais gerados?",
+            "Diretrizes internacionais robustas devem ser adaptadas à realidade local do Brasil.",
+            "A pesquisa clínica envolve seres humanos e requer aprovação ética muito rigorosa.",
+            "O consentimento livre e informado é um pilar indispensável da ética em pesquisa.",
+            "Os riscos da pesquisa devem ser mitigados e claramente comunicados ao voluntário.",
+            "O viés de publicação esconde estudos metodologicamente corretos com resultados negativos.",
+            "Registre sempre os protocolos de pesquisa para evitar a prática da publicação seletiva.",
+            "Leia os artigos originais completos em vez de resumos elaborados pela indústria.",
+            "O conhecimento médico atual possui uma meia-vida cada vez mais curta e dinâmica.",
+            "A capacidade de aprender a aprender é a habilidade médica mais valiosa no século.",
+            "Debater artigos no Clube de Revista enriquece a compreensão de todos os membros.",
+            "O Clube de Revista desenvolve forte liderança e argumentação baseada na ciência.",
+            "Não tenha medo de questionar duramente a metodologia de pesquisadores renomados.",
+            "A estatística moderna é apenas uma ferramenta a serviço do bom julgamento clínico.",
+            "A evidência não toma decisão sozinha, ela subsidia o raciocínio médico experiente.",
+            "O objetivo final da leitura crítica é a excelência contínua no cuidado ao paciente.",
+            "Pratique a avaliação crítica da literatura de forma contínua, ética e disciplinada.",
+            "A verdadeira autoridade na medicina moderna pertence inegavelmente às melhores evidências."
+        ];
+
+        // Elementos do DOM
+        const textEl = document.getElementById('text');
+        const containerEl = document.getElementById('container');
+        const progressBar = document.getElementById('progress-bar');
+        const footerBtn = document.getElementById('footer-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const timeDisplay = document.getElementById('time-display');
+
+        // Estado do app
+        let allSentences = [];
+        let currentIndex = 0;
+        let isClosed = false;
+        let phraseTimer;
+        let clockTimer;
+
+        // Embaralhador de Array (Fisher-Yates)
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Busca Binária para Cálculo Perfeito de Fonte
+        function adjustFontSize() {
+            if (isClosed) return;
+
+            textEl.style.transition = 'none';
+            textEl.style.fontSize = '10px';
+
+            const targetWidth = containerEl.clientWidth;
+            const targetHeight = containerEl.clientHeight;
+
+            let min = 10;
+            let max = 1500;
+            let best = 10;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                textEl.style.fontSize = mid + 'px';
+
+                if (textEl.scrollWidth <= targetWidth && textEl.scrollHeight <= targetHeight) {
+                    best = mid;
+                    min = mid + 1;
+                } else {
+                    max = mid - 1;
+                }
+            }
+
+            // Margem de segurança de -2px para evitar overflow
+            textEl.style.fontSize = Math.max(10, best - 2) + 'px';
+        }
+
+        // Gerenciar Ciclo das Frases e Barra de Progresso
+        function showNextPhrase() {
+            if (isClosed) return;
+
+            // Injeta o texto e recalcula a fonte
+            textEl.innerText = allSentences[currentIndex];
+            adjustFontSize();
+
+            // Reflow para reiniciar a animação da barra CSS
+            progressBar.classList.remove('animate-progress');
+            void progressBar.offsetWidth; 
+            progressBar.classList.add('animate-progress');
+
+            // Prepara a próxima
+            currentIndex++;
+            if (currentIndex >= allSentences.length) {
+                allSentences = shuffleArray(BANK_FRASES);
+                currentIndex = 0;
+            }
+        }
+
+        // Relógio focado no fuso horário local (Maceió)
+        function updateClock() {
+            if (isClosed) return;
+
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Maceio',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(now);
+            const dateParts = {};
+            parts.forEach(({ type, value }) => { dateParts[type] = value; });
+
+            // Capitaliza apenas o mês
+            const monthCapitalized = dateParts.month ? dateParts.month.charAt(0).toUpperCase() + dateParts.month.slice(1) : '';
+            
+            const dataFormatada = `${dateParts.day} de ${monthCapitalized} de ${dateParts.year} (${dateParts.weekday})`;
+            const horaFormatada = `${dateParts.hour}h${dateParts.minute}`;
+
+            dateDisplay.innerText = dataFormatada;
+            timeDisplay.innerText = horaFormatada;
+        }
+
+        // Inicialização Principal
+        window.onload = () => {
+            allSentences = shuffleArray(BANK_FRASES);
+            
+            // Relógio
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+            
+            // Frases (Inicia imediatamente e depois entra no loop de 5s)
+            showNextPhrase();
+            phraseTimer = setInterval(showNextPhrase, 5000);
+
+            // Ajuste ao redimensionar a tela
+            window.addEventListener('resize', adjustFontSize);
+
+            // Ação de fechar a tela no rodapé
+            footerBtn.addEventListener('click', () => {
+                isClosed = true;
+                clearInterval(phraseTimer);
+                clearInterval(clockTimer);
+                // Substitui a tela inteira por uma div preta
+                document.body.innerHTML = '<div class="w-screen h-screen bg-black"></div>';
+            });
+        };
+    </script>
+</body>
+</html>
