@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Telas</title>
+    <!-- Tailwind CSS embutido via CDN para manter os mesmos estilos do React -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animação CSS nativa para a barra de tempo */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 5s linear;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 selection:bg-emerald-500 selection:text-white overflow-hidden m-0 p-0 font-sans">
+    
+    <!-- Tela principal da aplicação -->
+    <div id="app" class="relative w-screen h-screen flex flex-col justify-center items-center pt-8 px-8 pb-28 md:pt-16 md:px-16 md:pb-36 lg:pt-24 lg:px-24 lg:pb-40 transition-opacity duration-300">
+        
+        <!-- Indicador de Tempo Visual (Linha superior) -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-zinc-800">
+            <div id="progress-bar" class="h-full bg-emerald-500"></div>
+        </div>
+
+        <!-- Container exato responsável pela área máxima e medição -->
+        <div id="container" class="w-full h-full flex justify-center items-center">
+            <div id="text" class="text-white font-black text-center break-words tracking-tight drop-shadow-2xl leading-[1.1]" style="word-break: keep-all;">
+                <!-- O texto dinâmico será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
+
+        <!-- Barra de Rodapé Clicável: Relógio e Fechamento -->
+        <button id="footer-btn" title="Clique para encerrar a apresentação" class="absolute bottom-0 left-0 w-full bg-zinc-900/90 hover:bg-red-900/90 transition-colors duration-300 text-zinc-300 hover:text-white py-3 md:py-4 px-4 flex flex-col justify-center items-center border-t border-zinc-800 z-50 text-sm md:text-base tracking-wide shadow-[0_-10px_30px_rgba(0,0,0,0.5)] group cursor-pointer">
+            <span id="date-display"></span>
+            <span id="time-display" class="text-lg md:text-xl font-bold mt-0.5"></span>
+            
+            <!-- Aviso de ação que aparece na lateral ao passar o mouse -->
+            <div class="hidden md:block absolute right-6 text-xs md:text-sm text-zinc-400 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                ✖ Fechar Apresentação
+            </div>
+        </button>
+    </div>
+
+    <!-- Script com toda a lógica da aplicação -->
+    <script>
+        // Banco com 50 frases
+        // Regra aplicada: Sem barras, usando vírgulas e mantendo hífens.
+        const BANK_FRASES = [
+            "A ética protege você.",
+            "O Termo de Consentimento Livre e Esclarecido garante a sua autonomia na pesquisa.",
+            "O Sistema CEP, Conep atua na defesa dos participantes.",
+            "Atenção aos eventos adversos.",
+            "Notificar eventos adversos é crucial para a segurança de todos os participantes no ensaio clínico.",
+            "A pesquisa clínica avança.",
+            "Ressarcimento e assistência integral são direitos inalienáveis- e garantidos- do participante da pesquisa.",
+            "O pesquisador é responsável.",
+            "A Plataforma Brasil centraliza a tramitação ética em todo o país.",
+            "Riscos e benefícios claros.",
+            "Todo protocolo em Ciências Humanas exige profundo respeito à dignidade dos indivíduos.",
+            "Assentimento do menor.",
+            "A capacidade de compreensão do voluntário deve ditar a linguagem utilizada no termo.",
+            "Aprovações éticas salvam vidas.",
+            "As orientações da Conep guiam a condução ética e segura no ambiente virtual.",
+            "Privacidade dos dados assegurada.",
+            "Sem consentimento, sem pesquisa.",
+            "Testemunhas assinam por participantes que não possuem plena capacidade de leitura.",
+            "A ciência deve servir à humanidade, jamais se sobrepor à ética e aos seus direitos.",
+            "Você pode desistir livremente.",
+            "O participante tem a opção de conhecer ou não o resultado do exame genético.",
+            "Indenização é um direito.",
+            "O acesso aos resultados por parte do sujeito da pesquisa é garantido a qualquer tempo.",
+            "Proteção contra discriminação.",
+            "A folha de rosto deve estar devidamente assinada pelo pesquisador e pela instituição.",
+            "Avalie a vulnerabilidade.",
+            "O relator no Comitê de Ética analisa o protocolo com rigor e imparcialidade.",
+            "Comitê Independente de Monitoramento.",
+            "A suspensão da pesquisa ocorre quando os riscos superam os benefícios esperados.",
+            "Cadastro de novo projeto.",
+            "O título público poderá ser disponibilizado em consultas públicas após a aprovação.",
+            "Confidencialidade absoluta.",
+            "As coletas de dados em ambiente virtual exigem modalidades específicas de consentimento.",
+            "Respeito à cultura local.",
+            "Pesquisas com cooperação estrangeira devem ser adaptadas às normas éticas brasileiras.",
+            "Acesso ao material biológico.",
+            "O armazenamento de material biológico exige consentimento expresso e clareza sobre o descarte.",
+            "Linguagem clara e acessível.",
+            "Evite o uso de termos técnicos complexos ao redigir o documento para o participante.",
+            "Assistência integral e gratuita.",
+            "A inclusão de participante em situação de emergência possui diretrizes éticas rigorosas.",
+            "Mantenha os dados seguros.",
+            "Os riscos característicos do ambiente eletrônico devem ser explicados de forma simples.",
+            "Relato de caso clínico.",
+            "O Sistema CEP, Conep exige a submissão de emendas para qualquer mudança no projeto.",
+            "Acompanhamento clínico contínuo.",
+            "Pesquisas com dispositivos para ventilação pulmonar requerem testes prévios de segurança.",
+            "Proteja o voluntário.",
+            "O ressarcimento de despesas com transporte e alimentação é obrigatório ao participante.",
+            "Ética em primeiro lugar."
+        ];
+
+        // Elementos do DOM
+        const textEl = document.getElementById('text');
+        const containerEl = document.getElementById('container');
+        const progressBar = document.getElementById('progress-bar');
+        const footerBtn = document.getElementById('footer-btn');
+        const dateDisplay = document.getElementById('date-display');
+        const timeDisplay = document.getElementById('time-display');
+
+        // Estado do app
+        let allSentences = [];
+        let currentIndex = 0;
+        let isClosed = false;
+        let phraseTimer;
+        let clockTimer;
+
+        // Embaralhador de Array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Busca Binária para Cálculo de Fonte
+        function adjustFontSize() {
+            if (isClosed) return;
+
+            textEl.style.transition = 'none';
+            textEl.style.fontSize = '10px';
+
+            const targetWidth = containerEl.clientWidth;
+            const targetHeight = containerEl.clientHeight;
+
+            let min = 10;
+            let max = 1500;
+            let best = 10;
+
+            while (min <= max) {
+                let mid = Math.floor((min + max) / 2);
+                textEl.style.fontSize = mid + 'px';
+
+                if (textEl.scrollWidth <= targetWidth && textEl.scrollHeight <= targetHeight) {
+                    best = mid;
+                    min = mid + 1;
+                } else {
+                    max = mid - 1;
+                }
+            }
+
+            textEl.style.fontSize = Math.max(10, best - 2) + 'px';
+        }
+
+        // Gerenciar Ciclo das Frases e Barra de Progresso
+        function showNextPhrase() {
+            if (isClosed) return;
+
+            // Injeta o texto e recalcula a fonte
+            textEl.innerText = allSentences[currentIndex];
+            adjustFontSize();
+
+            // Reflow para reiniciar a animação da barra CSS
+            progressBar.classList.remove('animate-progress');
+            void progressBar.offsetWidth; 
+            progressBar.classList.add('animate-progress');
+
+            // Prepara a próxima
+            currentIndex++;
+            if (currentIndex >= allSentences.length) {
+                allSentences = shuffleArray(BANK_FRASES);
+                currentIndex = 0;
+            }
+        }
+
+        // Relógio focado no fuso horário (Maceió)
+        function updateClock() {
+            if (isClosed) return;
+
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Maceio',
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const parts = formatter.formatToParts(now);
+            const dateParts = {};
+            parts.forEach(({ type, value }) => { dateParts[type] = value; });
+
+            const monthCapitalized = dateParts.month ? dateParts.month.charAt(0).toUpperCase() + dateParts.month.slice(1) : '';
+            
+            const dataFormatada = `${dateParts.day} de ${monthCapitalized} de ${dateParts.year} (${dateParts.weekday})`;
+            const horaFormatada = `${dateParts.hour}h${dateParts.minute}`;
+
+            dateDisplay.innerText = dataFormatada;
+            timeDisplay.innerText = horaFormatada;
+        }
+
+        // Inicialização Principal
+        window.onload = () => {
+            allSentences = shuffleArray(BANK_FRASES);
+            
+            // Relógio
+            updateClock();
+            clockTimer = setInterval(updateClock, 1000);
+            
+            // Frases (Inicia imediatamente e depois entra no loop de 5s)
+            showNextPhrase();
+            phraseTimer = setInterval(showNextPhrase, 5000);
+
+            // Ajuste ao redimensionar
+            window.addEventListener('resize', adjustFontSize);
+
+            // Ação de fechar a tela no rodapé
+            footerBtn.addEventListener('click', () => {
+                isClosed = true;
+                clearInterval(phraseTimer);
+                clearInterval(clockTimer);
+                // Substitui a tela inteira por uma div preta
+                document.body.innerHTML = '<div class="w-screen h-screen bg-black"></div>';
+            });
+        };
+    </script>
+</body>
+</html>
